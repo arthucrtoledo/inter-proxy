@@ -17,8 +17,14 @@ const clientId = process.env.INTER_CLIENT_ID;
 const clientSecret = process.env.INTER_CLIENT_SECRET;
 
 let accessToken = null;
+let tokenExpiration = 0;
 
 async function getToken() {
+
+  if (accessToken && Date.now() < tokenExpiration) {
+    return accessToken;
+  }
+
   const response = await axios.post(
     "https://cdpj.partners.bancointer.com.br/oauth/v2/token",
     new URLSearchParams({
@@ -35,24 +41,34 @@ async function getToken() {
   );
 
   accessToken = response.data.access_token;
+
+  tokenExpiration = Date.now() + (response.data.expires_in * 1000);
+
   return accessToken;
 }
 
-app.get("/", (req, res) => {
-  res.send("Inter Proxy running");
+app.get("/token", async (req, res) => {
+
+  try {
+
+    const token = await getToken();
+
+    res.json({ token });
+
+  } catch (error) {
+
+    console.error(error.response?.data || error.message);
+
+    res.status(500).json(error.response?.data || error.message);
+  }
+
 });
 
-app.post("/token", async (req, res) => {
-  try {
-    const token = await getToken();
-    res.json({ access_token: token });
-  } catch (err) {
-    res.status(500).json(err.response?.data || err.message);
-  }
-});
 
 app.get("/saldo", async (req, res) => {
+
   try {
+
     const token = await getToken();
 
     const response = await axios.get(
@@ -66,16 +82,24 @@ app.get("/saldo", async (req, res) => {
     );
 
     res.json(response.data);
-  } catch (err) {
-    res.status(500).json(err.response?.data || err.message);
+
+  } catch (error) {
+
+    console.error(error.response?.data || error.message);
+
+    res.status(500).json(error.response?.data || error.message);
   }
+
 });
 
+
 app.get("/extrato", async (req, res) => {
+
   try {
-    const token = await getToken();
 
     const { dataInicio, dataFim } = req.query;
+
+    const token = await getToken();
 
     const response = await axios.get(
       `https://cdpj.partners.bancointer.com.br/banking/v2/extrato?dataInicio=${dataInicio}&dataFim=${dataFim}`,
@@ -88,13 +112,21 @@ app.get("/extrato", async (req, res) => {
     );
 
     res.json(response.data);
-  } catch (err) {
-    res.status(500).json(err.response?.data || err.message);
+
+  } catch (error) {
+
+    console.error(error.response?.data || error.message);
+
+    res.status(500).json(error.response?.data || error.message);
   }
+
 });
 
+
 app.get("/boletos", async (req, res) => {
+
   try {
+
     const token = await getToken();
 
     const response = await axios.get(
@@ -108,11 +140,21 @@ app.get("/boletos", async (req, res) => {
     );
 
     res.json(response.data);
-  } catch (err) {
-    res.status(500).json(err.response?.data || err.message);
+
+  } catch (error) {
+
+    console.error(error.response?.data || error.message);
+
+    res.status(500).json(error.response?.data || error.message);
   }
+
 });
 
-app.listen(3000, () => {
-  console.log("Inter Proxy running on port 3000");
+
+const PORT = process.env.PORT || 3000;
+
+app.listen(PORT, () => {
+
+  console.log(`Proxy Inter rodando na porta ${PORT}`);
+
 });
