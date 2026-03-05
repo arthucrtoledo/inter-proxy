@@ -226,11 +226,11 @@ app.get("/boletos", async (req, res) => {
 
 /*
 =====================================
-PORTA RAILWAY
+PORTA RAILWAY (CORRIGIDO)
 =====================================
 */
 
-const PORT = process.env.PORT || 3000;
+const PORT = process.env.PORT;
 
 app.listen(PORT, "0.0.0.0", () => {
 
