@@ -5,6 +5,12 @@ import https from "https";
 const app = express();
 app.use(express.json());
 
+/*
+=====================================
+CONFIGURAÇÃO CERTIFICADO INTER
+=====================================
+*/
+
 const cert = process.env.INTER_CERTIFICATE;
 const key = process.env.INTER_PRIVATE_KEY;
 
@@ -13,8 +19,20 @@ const httpsAgent = new https.Agent({
   key
 });
 
+/*
+=====================================
+CLIENT ID E SECRET
+=====================================
+*/
+
 const clientId = process.env.INTER_CLIENT_ID;
 const clientSecret = process.env.INTER_CLIENT_SECRET;
+
+/*
+=====================================
+CACHE DE TOKEN
+=====================================
+*/
 
 let accessToken = null;
 let tokenExpiration = 0;
@@ -25,45 +43,61 @@ async function getToken() {
     return accessToken;
   }
 
-  const response = await axios.post(
-    "https://cdpj.partners.bancointer.com.br/oauth/v2/token",
-    new URLSearchParams({
-      client_id: clientId,
-      client_secret: clientSecret,
-      grant_type: "client_credentials"
-    }),
-    {
-      httpsAgent,
-      headers: {
-        "Content-Type": "application/x-www-form-urlencoded"
-      }
-    }
-  );
-
-  accessToken = response.data.access_token;
-
-  tokenExpiration = Date.now() + (response.data.expires_in * 1000);
-
-  return accessToken;
-}
-
-app.get("/token", async (req, res) => {
-
   try {
 
-    const token = await getToken();
+    const response = await axios.post(
+      "https://cdpj.partners.bancointer.com.br/oauth/v2/token",
+      new URLSearchParams({
+        grant_type: "client_credentials",
+        client_id: clientId,
+        client_secret: clientSecret,
+        scope: "extrato.read boleto-cobranca.read boleto-cobranca.write"
+      }),
+      {
+        httpsAgent,
+        headers: {
+          "Content-Type": "application/x-www-form-urlencoded"
+        },
+        timeout: 10000
+      }
+    );
 
-    res.json({ token });
+    accessToken = response.data.access_token;
+
+    tokenExpiration = Date.now() + (response.data.expires_in * 1000) - 60000;
+
+    return accessToken;
 
   } catch (error) {
 
-    console.error(error.response?.data || error.message);
+    console.error("Erro ao gerar token:", error.response?.data || error.message);
+    throw error;
 
-    res.status(500).json(error.response?.data || error.message);
   }
+
+}
+
+/*
+=====================================
+HEALTH CHECK (IMPORTANTE PARA RAILWAY)
+=====================================
+*/
+
+app.get("/", (req, res) => {
+
+  res.json({
+    status: "ok",
+    service: "inter-proxy",
+    message: "Proxy Inter funcionando"
+  });
 
 });
 
+/*
+=====================================
+SALDO
+=====================================
+*/
 
 app.get("/saldo", async (req, res) => {
 
@@ -77,7 +111,8 @@ app.get("/saldo", async (req, res) => {
         httpsAgent,
         headers: {
           Authorization: `Bearer ${token}`
-        }
+        },
+        timeout: 10000
       }
     );
 
@@ -85,13 +120,21 @@ app.get("/saldo", async (req, res) => {
 
   } catch (error) {
 
-    console.error(error.response?.data || error.message);
+    console.error("Erro saldo:", error.response?.data || error.message);
 
-    res.status(500).json(error.response?.data || error.message);
+    res.status(500).json(
+      error.response?.data || { erro: error.message }
+    );
+
   }
 
 });
 
+/*
+=====================================
+EXTRATO
+=====================================
+*/
 
 app.get("/extrato", async (req, res) => {
 
@@ -102,12 +145,17 @@ app.get("/extrato", async (req, res) => {
     const token = await getToken();
 
     const response = await axios.get(
-      `https://cdpj.partners.bancointer.com.br/banking/v2/extrato?dataInicio=${dataInicio}&dataFim=${dataFim}`,
+      "https://cdpj.partners.bancointer.com.br/banking/v2/extrato",
       {
         httpsAgent,
         headers: {
           Authorization: `Bearer ${token}`
-        }
+        },
+        params: {
+          dataInicio,
+          dataFim
+        },
+        timeout: 10000
       }
     );
 
@@ -115,13 +163,21 @@ app.get("/extrato", async (req, res) => {
 
   } catch (error) {
 
-    console.error(error.response?.data || error.message);
+    console.error("Erro extrato:", error.response?.data || error.message);
 
-    res.status(500).json(error.response?.data || error.message);
+    res.status(500).json(
+      error.response?.data || { erro: error.message }
+    );
+
   }
 
 });
 
+/*
+=====================================
+BOLETOS
+=====================================
+*/
 
 app.get("/boletos", async (req, res) => {
 
@@ -135,7 +191,8 @@ app.get("/boletos", async (req, res) => {
         httpsAgent,
         headers: {
           Authorization: `Bearer ${token}`
-        }
+        },
+        timeout: 10000
       }
     );
 
@@ -143,13 +200,21 @@ app.get("/boletos", async (req, res) => {
 
   } catch (error) {
 
-    console.error(error.response?.data || error.message);
+    console.error("Erro boletos:", error.response?.data || error.message);
 
-    res.status(500).json(error.response?.data || error.message);
+    res.status(500).json(
+      error.response?.data || { erro: error.message }
+    );
+
   }
 
 });
 
+/*
+=====================================
+PORTA RAILWAY
+=====================================
+*/
 
 const PORT = process.env.PORT || 3000;
 
