@@ -15,8 +15,8 @@ const cert = process.env.INTER_CERTIFICATE;
 const key = process.env.INTER_PRIVATE_KEY;
 
 const httpsAgent = new https.Agent({
-  cert,
-  key
+  cert: cert,
+  key: key
 });
 
 /*
@@ -64,13 +64,18 @@ async function getToken() {
 
     accessToken = response.data.access_token;
 
-    tokenExpiration = Date.now() + (response.data.expires_in * 1000) - 60000;
+    tokenExpiration =
+      Date.now() + (response.data.expires_in * 1000) - 60000;
 
     return accessToken;
 
   } catch (error) {
 
-    console.error("Erro ao gerar token:", error.response?.data || error.message);
+    console.error(
+      "Erro ao gerar token:",
+      error.response?.data || error.message
+    );
+
     throw error;
 
   }
@@ -120,7 +125,10 @@ app.get("/saldo", async (req, res) => {
 
   } catch (error) {
 
-    console.error("Erro saldo:", error.response?.data || error.message);
+    console.error(
+      "Erro saldo:",
+      error.response?.data || error.message
+    );
 
     res.status(500).json(
       error.response?.data || { erro: error.message }
@@ -163,7 +171,10 @@ app.get("/extrato", async (req, res) => {
 
   } catch (error) {
 
-    console.error("Erro extrato:", error.response?.data || error.message);
+    console.error(
+      "Erro extrato:",
+      error.response?.data || error.message
+    );
 
     res.status(500).json(
       error.response?.data || { erro: error.message }
@@ -200,7 +211,10 @@ app.get("/boletos", async (req, res) => {
 
   } catch (error) {
 
-    console.error("Erro boletos:", error.response?.data || error.message);
+    console.error(
+      "Erro boletos:",
+      error.response?.data || error.message
+    );
 
     res.status(500).json(
       error.response?.data || { erro: error.message }
@@ -218,7 +232,7 @@ PORTA RAILWAY
 
 const PORT = process.env.PORT || 3000;
 
-app.listen(PORT, () => {
+app.listen(PORT, "0.0.0.0", () => {
 
   console.log(`Proxy Inter rodando na porta ${PORT}`);
 
