@@ -51,7 +51,7 @@ async function getToken() {
         grant_type: "client_credentials",
         client_id: clientId,
         client_secret: clientSecret,
-        scope: "extrato.read boleto-cobranca.read boleto-cobranca.write"
+        scope: "extrato.read boleto-cobranca.read boleto-cobranca.write pix.write pix.read"
       }),
       {
         httpsAgent,
@@ -116,8 +116,7 @@ app.get("/saldo", async (req, res) => {
         httpsAgent,
         headers: {
           Authorization: `Bearer ${token}`
-        },
-        timeout: 10000
+        }
       }
     );
 
@@ -125,10 +124,7 @@ app.get("/saldo", async (req, res) => {
 
   } catch (error) {
 
-    console.error(
-      "Erro saldo:",
-      error.response?.data || error.message
-    );
+    console.error("Erro saldo:", error.response?.data || error.message);
 
     res.status(500).json(
       error.response?.data || { erro: error.message }
@@ -162,8 +158,7 @@ app.get("/extrato", async (req, res) => {
         params: {
           dataInicio,
           dataFim
-        },
-        timeout: 10000
+        }
       }
     );
 
@@ -171,10 +166,7 @@ app.get("/extrato", async (req, res) => {
 
   } catch (error) {
 
-    console.error(
-      "Erro extrato:",
-      error.response?.data || error.message
-    );
+    console.error("Erro extrato:", error.response?.data || error.message);
 
     res.status(500).json(
       error.response?.data || { erro: error.message }
@@ -209,8 +201,7 @@ app.get("/boletos", async (req, res) => {
         params: {
           dataInicial,
           dataFinal
-        },
-        timeout: 10000
+        }
       }
     );
 
@@ -218,10 +209,51 @@ app.get("/boletos", async (req, res) => {
 
   } catch (error) {
 
-    console.error(
-      "Erro boletos:",
-      error.response?.data || error.message
+    console.error("Erro boletos:", error.response?.data || error.message);
+
+    res.status(500).json(
+      error.response?.data || { erro: error.message }
     );
+
+  }
+
+});
+
+/*
+=====================================
+ENVIAR PIX
+=====================================
+*/
+
+app.post("/pix", async (req, res) => {
+
+  try {
+
+    const { tipo, chave, valor, descricao } = req.body;
+
+    const token = await getToken();
+
+    const response = await axios.post(
+      "https://cdpj.partners.bancointer.com.br/banking/v2/pix",
+      {
+        tipo,
+        chave,
+        valor,
+        descricao
+      },
+      {
+        httpsAgent,
+        headers: {
+          Authorization: `Bearer ${token}`
+        }
+      }
+    );
+
+    res.json(response.data);
+
+  } catch (error) {
+
+    console.error("Erro PIX:", error.response?.data || error.message);
 
     res.status(500).json(
       error.response?.data || { erro: error.message }
