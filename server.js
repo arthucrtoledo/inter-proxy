@@ -30,7 +30,7 @@ const clientSecret = process.env.INTER_CLIENT_SECRET;
 
 /*
 =====================================
-CACHE DE TOKEN
+CACHE TOKEN
 =====================================
 */
 
@@ -84,7 +84,7 @@ async function getToken() {
 
 /*
 =====================================
-HEALTH CHECK (IMPORTANTE PARA RAILWAY)
+HEALTH CHECK
 =====================================
 */
 
@@ -196,12 +196,19 @@ app.get("/boletos", async (req, res) => {
 
     const token = await getToken();
 
+    const dataInicial = req.query.dataInicial || "2024-01-01";
+    const dataFinal = req.query.dataFinal || "2030-12-31";
+
     const response = await axios.get(
       "https://cdpj.partners.bancointer.com.br/cobranca/v3/cobrancas",
       {
         httpsAgent,
         headers: {
           Authorization: `Bearer ${token}`
+        },
+        params: {
+          dataInicial,
+          dataFinal
         },
         timeout: 10000
       }
@@ -226,7 +233,7 @@ app.get("/boletos", async (req, res) => {
 
 /*
 =====================================
-PORTA RAILWAY (CORRIGIDO)
+PORTA RAILWAY
 =====================================
 */
 
